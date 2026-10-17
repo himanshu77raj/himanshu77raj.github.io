@@ -156,6 +156,8 @@ button, a, input, select, textarea { font-variant-ligatures: none; }
 .hero-portrait-layout .floating-note { display: none; }
 @media (max-width: 520px) { .hero-portrait figcaption { display: none; } }
 .assistant-quick { flex-wrap: wrap; align-content: flex-start; max-height: 128px; overflow-x: hidden; overflow-y: auto; }
+.assistant-quick button:disabled,.assistant-replay:disabled,.mic-button:disabled,.send-button:disabled{opacity:.48;cursor:wait}
+.assistant-form input:disabled{color:#698278;cursor:wait}
 .assistant-replay { display: block; margin-top: 7px; padding: 0; border: 0; background: transparent; color: #3b6a55; font: inherit; font-size: 10px; font-weight: 700; cursor: pointer; }
 .assistant-replay[hidden] { display: none; }
 .assistant-replay:hover, .assistant-replay:focus-visible { text-decoration: underline; }
