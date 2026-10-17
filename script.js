@@ -112,14 +112,21 @@ function answerQuestion(query){const q=query.toLowerCase().normalize('NFKC').rep
   if(has('shambhala','blender','maya','3d'))return 'SHAMBHALA is presented here as asset preparation and Python-supported Blender workflow development. The Polygon Lab is a separate browser-based mathematical visualization, not evidence of completed Maya projects.';
   if(has('skill','stack','language','technology','python','javascript','tech','स्किल','କୌଶଳ'))return 'Rajesh works with Python, JavaScript, HTML/CSS, APIs, SQL, local AI workflows, UI/UX, Godot, Blender, Git, and automated testing. He prefers hands-on development and iterative testing.';
   if(has('work','project','build','portfolio','experience','करते','काम','ପ୍ରୋଜେକ୍ଟ'))return 'Rajesh builds local AI systems, automation and data-processing tools, and software interfaces. Featured projects include MIRA 2.0, Trade Hack, Python automation, and SHAMBHALA tooling.';
-  if(has('contact','hire','job','freelance','email','linkedin','reach','संपर्क','ଯୋଗାଯୋଗ'))return 'Rajesh is open to remote technical opportunities and collaborations. You can find his GitHub profile in the Contact section. Email: rajeshroshannanda2@gmail.com. WhatsApp and phone: +91 9178839312. LinkedIn: linkedin.com/in/rajesh-nanda-000033390/.';
+  if(has('contact','hire','job','freelance','email','phone','number','whatsapp','linkedin','reach','संपर्क','ଯୋଗାଯୋଗ'))return 'Rajesh is open to remote technical opportunities and collaborations. You can find his GitHub profile in the Contact section. Email: rajeshroshannanda2@gmail.com. WhatsApp and phone: +91 9178839312. LinkedIn: linkedin.com/in/rajesh-nanda-000033390/.';
   if(has('desktop','terminal','automation','lab','demo','computer','virtual'))return 'The Virtual Workspace is an interactive browser sandbox. It includes a project explorer, a sample-data automation demo, a sandbox terminal, and browser-local notes. It does not connect to any real computer.';
   if(has('education','degree','college','self taught','self-taught','study','पढ़ाई'))return 'Rajesh studied BBA at Utkal University but discontinued the course in his final semester without earning the degree. He develops his software skills through independent projects, programming, and testing.';
   if(has('hello','hi','hey','namaste','नमस्ते','ନମସ୍କାର'))return 'Hello! ✳ Welcome to this quiet corner of the web. Would you like to explore Rajesh’s skills, projects, virtual desktop, or technical visualizations?';
   if(has('who','about','rajesh','राजेश','ରାଜେଶ'))return 'Rajesh Roshan Nanda is a self-taught developer based in Bhubaneswar, Odisha, with interests in applied AI, Python automation, LLM tooling, and thoughtful interface design. He is open to suitable technical roles and collaborations.';
   return 'I’m a focused guide to this portfolio rather than a general-purpose AI. Try asking about MIRA, Python skills, the virtual desktop, the creative tech lab, or how to contact Rajesh.';
 }
-function speakMessage(message){if(!$('#assistant-speak').checked||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(message);u.lang='en-IN';u.rate=.96;u.pitch=1;u.volume=.85;u.onstart=()=>orb.classList.add('speaking');u.onend=()=>orb.classList.remove('speaking');u.onerror=()=>orb.classList.remove('speaking');speechSynthesis.speak(u);}catch{orb.classList.remove('speaking');}}
+function textForSpeech(message){
+  const digitNames=['zero','one','two','three','four','five','six','seven','eight','nine'];
+  const sayDigits=digits=>[...digits].map(digit=>digitNames[Number(digit)]).join(', ');
+  return message
+    .replace(/\bMIRA\b/gi,'Meera')
+    .replace(/\+91[\s-]*(\d{10})\b/g,(_match,nationalNumber)=>`plus ${sayDigits('91')}; ${sayDigits(nationalNumber)}`);
+}
+function speakMessage(message){if(!$('#assistant-speak').checked||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(textForSpeech(message));u.lang='en-IN';u.rate=.96;u.pitch=1;u.volume=.85;u.onstart=()=>orb.classList.add('speaking');u.onend=()=>orb.classList.remove('speaking');u.onerror=()=>orb.classList.remove('speaking');speechSynthesis.speak(u);}catch{orb.classList.remove('speaking');}}
 function submitQuestion(text){const clean=String(text).trim().slice(0,300);if(!clean)return;addMessage(clean,'user');const response=answerQuestion(clean);addMessage(response,'bot');speakMessage(response);
   if(/\b(show|open|go to|take me to)\b/i.test(clean)&&/\b(lab|desktop|computer)\b/i.test(clean)){jumpTo('#lab');}
 }
