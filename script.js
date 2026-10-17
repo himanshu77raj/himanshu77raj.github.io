@@ -109,15 +109,16 @@ function unlockVoice(force=false){if(!force&&!$('#assistant-speak').checked)retu
 function stopSpeech(){speechNumber++;speechAbort?.abort();speechAbort=null;if(currentSource){const source=currentSource;currentSource=null;source.onended=null;try{source.stop();}catch{}}if(currentAudio){currentAudio.pause();currentAudio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}if('speechSynthesis' in window)window.speechSynthesis.cancel();speechDoneResolve?.();speechDoneResolve=null;orb.classList.remove('speaking');}
 function toggleAssistant(force){const open=typeof force==='boolean'?force:chatbotPanel.hidden;chatbotPanel.hidden=!open;$('#assistant-fab').setAttribute('aria-expanded',String(open));if(open){unlockVoice();if(!answering)$('#assistant-input').focus();}else{if(recognizer&&micListening)recognizer.stop();stopSpeech();typingController?.finish();}}
 $('#assistant-fab').addEventListener('click',()=>toggleAssistant());$('#assistant-close').addEventListener('click',()=>toggleAssistant(false));
-function addMessage(message,kind){const bubble=deskElement('div','chat-bubble '+(kind==='user'?'user-bubble':'bot-bubble'));let result=bubble;if(kind==='user')bubble.textContent=message;else{const copy=deskElement('div','bot-message-text',message);const replay=deskElement('button','assistant-replay','▶ Listen to reply');replay.type='button';replay.hidden=message==='Thinking…';replay.setAttribute('aria-label','Listen to this reply');replay.addEventListener('click',()=>{if(answering)return;unlockVoice(true);speakMessage(copy.textContent,true);});bubble.append(copy,replay);result={copy,replay};}$('#assistant-messages').append(bubble);$('#assistant-messages').scrollTop=$('#assistant-messages').scrollHeight;return result;}
+function addMessage(message,kind){const bubble=deskElement('div','chat-bubble '+(kind==='user'?'user-bubble':'bot-bubble'));let result=bubble;if(kind==='user')bubble.textContent=message;else{const copy=deskElement('div','bot-message-text',message);const replay=deskElement('button','assistant-replay','▶ Listen to reply');replay.type='button';replay.hidden=!message;replay.setAttribute('aria-label','Listen to this reply');replay.addEventListener('click',()=>{if(answering)return;unlockVoice(true);speakMessage(copy.textContent,true);});bubble.append(copy,replay);result={copy,replay};}$('#assistant-messages').append(bubble);$('#assistant-messages').scrollTop=$('#assistant-messages').scrollHeight;return result;}
 function setAssistantBusy(busy){answering=busy;chatbotPanel.setAttribute('aria-busy',String(busy));$('#assistant-input').disabled=busy;$('#assistant-form button[type="submit"]').disabled=busy;$('#assistant-mic').disabled=busy||!recognitionAPI;$$('#assistant-quick button, .assistant-replay').forEach(button=>button.disabled=busy);$('#assistant-input').placeholder=busy?'Mira is answering…':'Ask about my technical work...';}
+function showReplyLoading(copy,label){copy.classList.add('assistant-loading');copy.setAttribute('role','status');copy.textContent=label;const dots=deskElement('span','assistant-loading-dots');dots.setAttribute('aria-hidden','true');for(let i=0;i<3;i++)dots.append(deskElement('span'));copy.append(dots);}
 function typeReply(copy,message){
-  const letters=Array.from(message);let count=0,phase='preparing',start=performance.now(),startCount=0,duration=0,timer;
+  const letters=Array.from(message);let count=0,phase='waiting',start=0,duration=0,timer;
   let resolveDone;const done=new Promise(resolve=>{resolveDone=resolve;});
   function show(target){const next=Math.min(letters.length,Math.max(count,Math.floor(target)));if(next===count)return;count=next;copy.textContent=letters.slice(0,count).join('');$('#assistant-messages').scrollTop=$('#assistant-messages').scrollHeight;if(count===letters.length){clearInterval(timer);resolveDone();}}
-  function tick(){const elapsed=performance.now()-start;if(phase==='preparing')show(Math.min(Math.ceil(letters.length*.35),elapsed/38));else if(phase==='audio')show(startCount+(letters.length-startCount)*Math.min(1,elapsed/duration));else show(startCount+elapsed/24);}
-  timer=setInterval(tick,35);tick();
-  return {done,syncToAudio(seconds){if(count===letters.length)return;phase='audio';start=performance.now();startCount=count;duration=Math.max(500,seconds*1000);},noAudio(){if(count===letters.length)return;phase='silent';start=performance.now();startCount=count;},finish(){show(letters.length);}};
+  function tick(){if(phase==='waiting')return;const elapsed=performance.now()-start;if(phase==='audio')show(letters.length*Math.min(1,elapsed/duration));else show(elapsed/24);}
+  function begin(nextPhase,seconds=0){if(phase!=='waiting')return;phase=nextPhase;start=performance.now();duration=Math.max(500,seconds*1000);copy.classList.remove('assistant-loading');copy.removeAttribute('role');copy.textContent='';timer=setInterval(tick,35);tick();}
+  return {done,syncToAudio(seconds){begin('audio',seconds);},noAudio(){begin('silent');},finish(){if(phase==='waiting'){copy.classList.remove('assistant-loading');copy.removeAttribute('role');copy.textContent='';}show(letters.length);}};
 }
 function answerQuestion(query){const q=query.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}\s]/gu,' ');
   const has=(...phrases)=>phrases.some(term=>q.includes(term));
@@ -164,15 +165,15 @@ async function speakMessage(message,force=false,onPlaybackStart=()=>{},onUnavail
 }
 async function submitQuestion(text){const clean=String(text).trim().slice(0,300);if(!clean||answering)return;unlockVoice();setAssistantBusy(true);const thisRequest=++requestNumber;addMessage(clean,'user');let response=answerQuestion(clean),failed=false,reply;
   try{
-    if(!response){reply=addMessage('Thinking…','bot');try{const result=await fetch(ASSISTANT_API+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:clean,history:conversation.slice(-6)})});const data=await result.json();if(!result.ok)throw Error(data.error||'Mira is temporarily unavailable.');response=String(data.answer||'').trim();if(!response)throw Error('Mira could not form an answer. Please try again.');}catch{failed=true;response='Mira is temporarily unavailable. Please try again shortly.';}}
-    else reply=addMessage('', 'bot');
+    reply=addMessage('','bot');showReplyLoading(reply.copy,response?'Preparing voice':'Mira is thinking');
+    if(!response){try{const result=await fetch(ASSISTANT_API+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:clean,history:conversation.slice(-6)})});const data=await result.json();if(!result.ok)throw Error(data.error||'Mira is temporarily unavailable.');response=String(data.answer||'').trim();if(!response)throw Error('Mira could not form an answer. Please try again.');}catch{failed=true;response='Mira is temporarily unavailable. Please try again shortly.';}if(!failed)showReplyLoading(reply.copy,'Preparing voice');}
     if(thisRequest!==requestNumber)return;
-    if(failed){reply.copy.textContent=response;return;}
-    reply.copy.textContent='';reply.replay.hidden=true;typingController=typeReply(reply.copy,response);
+    if(failed){reply.copy.classList.remove('assistant-loading');reply.copy.removeAttribute('role');reply.copy.textContent=response;return;}
+    typingController=typeReply(reply.copy,response);
     conversation.push({role:'user',content:clean},{role:'assistant',content:response});if(conversation.length>8)conversation.splice(0,conversation.length-8);
     if(/\b(show|open|go to|take me to)\b/i.test(clean)&&/\b(lab|desktop|computer)\b/i.test(clean))jumpTo('#lab');
-    const voice=speakMessage(response,false,seconds=>typingController?.syncToAudio(seconds),()=>typingController?.noAudio());
-    await Promise.all([typingController.done,voice]);reply.replay.hidden=false;
+    let playedAudio=false;const voice=speakMessage(response,false,seconds=>{playedAudio=true;typingController?.syncToAudio(seconds);},()=>typingController?.noAudio());
+    await voice;if(playedAudio)typingController.finish();await typingController.done;reply.replay.hidden=false;
   }finally{typingController=null;setAssistantBusy(false);}
 }
 $('#assistant-form').addEventListener('submit',event=>{event.preventDefault();if(answering)return;const input=$('#assistant-input');const value=input.value;input.value='';submitQuestion(value);});
