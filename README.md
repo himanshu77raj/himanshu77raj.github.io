@@ -6,7 +6,7 @@ A static, responsive, no-build portfolio presenting AI/LLM engineering, Python a
 Open `index.html` directly, or run `python -m http.server 8000` in this directory and open `http://localhost:8000/`. Browsers usually require localhost or HTTPS for microphone access. Voice recognition also depends on the browser and may use third-party services.
 
 ## Contact
-Email: rajeshroshannanda2@gmail.com | Phone / WhatsApp: +91 78839 31312 | LinkedIn: https://www.linkedin.com/in/rajesh-nanda-000033390/ | GitHub: https://github.com/himanshu77raj.
+Email: rajeshroshannanda2@gmail.com | Phone / WhatsApp: +91 9178839312 | LinkedIn: https://www.linkedin.com/in/rajesh-nanda-000033390/ | GitHub: https://github.com/himanshu77raj.
 
 ## What's in this package
 - `index.html`: the semantic page and original SVG diagrams
