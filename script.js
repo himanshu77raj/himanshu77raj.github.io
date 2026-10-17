@@ -124,6 +124,7 @@ function textForSpeech(message){
   const sayDigits=digits=>[...digits].map(digit=>digitNames[Number(digit)]).join(', ');
   return message
     .replace(/\bMIRA\b/gi,'Meera')
+    .replace(/\bRajesh\b/gi,'Raajesh')
     .replace(/\+91[\s-]*(\d{10})\b/g,(_match,nationalNumber)=>`plus ${sayDigits('91')}; ${sayDigits(nationalNumber)}`);
 }
 function speakMessage(message){if(!$('#assistant-speak').checked||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(textForSpeech(message));u.lang='en-IN';u.rate=.96;u.pitch=1;u.volume=.85;u.onstart=()=>orb.classList.add('speaking');u.onend=()=>orb.classList.remove('speaking');u.onerror=()=>orb.classList.remove('speaking');speechSynthesis.speak(u);}catch{orb.classList.remove('speaking');}}
