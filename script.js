@@ -1,7 +1,7 @@
 'use strict';
 /*
  * Rajesh Roshan Nanda — portfolio v4
- * Vanilla browser JavaScript. No credentials, analytics, or external AI calls.
+ * Vanilla browser JavaScript. No credentials or analytics are embedded here.
  * Optional published project demo URLs can be configured in LIVE_DEMOS below.
  * Only add links for deployments you have reviewed and approved for public access.
  */
@@ -99,25 +99,30 @@ $('#window-close').addEventListener('click',()=>{deskWindow.hidden=true;});
 function updateDockTime(){ $('#dock-time').textContent=new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}); }
 updateDockTime();setInterval(updateDockTime,60000);
 
-// Portfolio assistant. Honest retrieval-style guide using curated public content.
+// Portfolio assistant. Curated portfolio facts with hosted Llama for open questions.
+const ASSISTANT_API = 'https://rajesh-portfolio-guide.rajeshroshannanda2.workers.dev';
 const chatbotPanel=$('#assistant-panel');const orb=$('#avatar-orb');const recognitionAPI=window.SpeechRecognition||window.webkitSpeechRecognition;
-let recognizer=null,micListening=false;
-function toggleAssistant(force){const open=typeof force==='boolean'?force:chatbotPanel.hidden;chatbotPanel.hidden=!open;$('#assistant-fab').setAttribute('aria-expanded',String(open));if(open)$('#assistant-input').focus();else{if(recognizer&&micListening)recognizer.stop();if('speechSynthesis' in window)window.speechSynthesis.cancel();orb.classList.remove('speaking');}}
+let recognizer=null,micListening=false,currentAudio=null,audioUrl=null,requestNumber=0,speechNumber=0;
+const conversation=[];
+function stopSpeech(){speechNumber++;if(currentAudio){currentAudio.pause();currentAudio=null;}if(audioUrl){URL.revokeObjectURL(audioUrl);audioUrl=null;}if('speechSynthesis' in window)window.speechSynthesis.cancel();orb.classList.remove('speaking');}
+function toggleAssistant(force){const open=typeof force==='boolean'?force:chatbotPanel.hidden;chatbotPanel.hidden=!open;$('#assistant-fab').setAttribute('aria-expanded',String(open));if(open)$('#assistant-input').focus();else{if(recognizer&&micListening)recognizer.stop();stopSpeech();}}
 $('#assistant-fab').addEventListener('click',()=>toggleAssistant());$('#assistant-close').addEventListener('click',()=>toggleAssistant(false));
-function addMessage(message,kind){const bubble=deskElement('div','chat-bubble '+(kind==='user'?'user-bubble':'bot-bubble'),message);$('#assistant-messages').append(bubble);$('#assistant-messages').scrollTop=$('#assistant-messages').scrollHeight;}
+function addMessage(message,kind){const bubble=deskElement('div','chat-bubble '+(kind==='user'?'user-bubble':'bot-bubble'),message);$('#assistant-messages').append(bubble);$('#assistant-messages').scrollTop=$('#assistant-messages').scrollHeight;return bubble;}
 function answerQuestion(query){const q=query.toLowerCase().normalize('NFKC').replace(/[^\p{L}\p{N}\s]/gu,' ');
   const has=(...phrases)=>phrases.some(term=>q.includes(term));
-  if(has('mira','मीरा','ମୀରା','agent','assistant','chatbot'))return 'MIRA 2.0 is Rajesh’s local AI-assistant project. It explores persistent memory, planning, checkpoint recovery, and permission-aware workflows. The more expressive avatar and wider device control are still being developed. Explore the Engineering Work section to learn more.';
-  if(has('trade','trading','market','ट्रेड','ଟ୍ରେଡ'))return 'Trade Hack is a research-first market data system. It focuses on data integrity, backtesting and conservative risk gates, with paper-only evaluation. It is not financial advice or a public trading bot.';
-  if(has('shambhala','blender','maya','3d'))return 'SHAMBHALA is presented here as asset preparation and Python-supported Blender workflow development. The Polygon Lab is a separate browser-based mathematical visualization, not evidence of completed Maya projects.';
-  if(has('skill','stack','language','technology','python','javascript','tech','स्किल','କୌଶଳ'))return 'Rajesh works with Python, JavaScript, HTML/CSS, APIs, SQL, local AI workflows, UI/UX, Godot, Blender, Git, and automated testing. He prefers hands-on development and iterative testing.';
-  if(has('work','project','build','portfolio','experience','करते','काम','ପ୍ରୋଜେକ୍ଟ'))return 'Rajesh builds local AI systems, automation and data-processing tools, and software interfaces. Featured projects include MIRA 2.0, Trade Hack, Python automation, and SHAMBHALA tooling.';
-  if(has('contact','hire','job','freelance','email','phone','number','whatsapp','linkedin','reach','संपर्क','ଯୋଗାଯୋଗ'))return 'Rajesh is open to remote technical opportunities and collaborations. You can find his GitHub profile in the Contact section. Email: rajeshroshannanda2@gmail.com. WhatsApp and phone: +91 9178839312. LinkedIn: linkedin.com/in/rajesh-nanda-000033390/.';
-  if(has('desktop','terminal','automation','lab','demo','computer','virtual'))return 'The Virtual Workspace is an interactive browser sandbox. It includes a project explorer, a sample-data automation demo, a sandbox terminal, and browser-local notes. It does not connect to any real computer.';
-  if(has('education','degree','college','self taught','self-taught','study','पढ़ाई'))return 'Rajesh studied BBA at Utkal University but discontinued the course in his final semester without earning the degree. He develops his software skills through independent projects, programming, and testing.';
-  if(has('hello','hi','hey','namaste','नमस्ते','ନମସ୍କାର'))return 'Hello! ✳ Welcome to this quiet corner of the web. Would you like to explore Rajesh’s skills, projects, virtual desktop, or technical visualizations?';
-  if(has('who','about','rajesh','राजेश','ରାଜେଶ'))return 'Rajesh Roshan Nanda is a self-taught developer based in Bhubaneswar, Odisha, with interests in applied AI, Python automation, LLM tooling, and thoughtful interface design. He is open to suitable technical roles and collaborations.';
-  return 'I’m a focused guide to this portfolio rather than a general-purpose AI. Try asking about MIRA, Python skills, the virtual desktop, the creative tech lab, or how to contact Rajesh.';
+  if(has('mira','meera','मीरा','ମୀରା'))return 'MIRA 2.0 is Rajesh’s local AI-assistant project. It explores persistent memory, planning, checkpoint recovery, and permission-aware workflows. The more expressive avatar and wider device control are still being developed. Explore the Engineering Work section to learn more.';
+  if(has('trade hack'))return 'Trade Hack is a research-first market data system. It focuses on data integrity, backtesting and conservative risk gates, with paper-only evaluation. It is not financial advice or a public trading bot.';
+  if(/^(show|list|tell me about)\b/.test(q)&&has('api','plugin','module'))return 'Rajesh explores REST and JSON integrations, input validation, modular components, and test-oriented Python workflows. The API explorer and modules area in the Virtual Workspace are browser demonstrations, not public production services.';
+  if(has('shambhala')||(has('rajesh')&&has('blender','maya','3d')))return 'SHAMBHALA is presented here as asset preparation and Python-supported Blender workflow development. The Polygon Lab is a separate browser-based mathematical visualization, not evidence of completed Maya projects.';
+  if(has('utkal')||(has('rajesh')&&has('education','degree','college','self taught','self-taught')))return 'Rajesh studied BBA at Utkal University but discontinued the course in his final semester without earning the degree. He develops his software skills through independent projects, programming, and testing.';
+  if((has('rajesh')&&has('contact','hire','job','freelance','email','phone','number','whatsapp','linkedin','reach'))||q==='contact')return 'Rajesh is open to remote technical opportunities and collaborations. You can find his GitHub profile in the Contact section. Email: rajeshroshannanda2@gmail.com. WhatsApp and phone: +91 9178839312. LinkedIn: linkedin.com/in/rajesh-nanda-000033390/.';
+  if(has('virtual desktop','virtual os','virtual workspace')||(has('rajesh')&&has('terminal','automation','lab','demo')))return 'The Virtual Workspace is an interactive browser sandbox. It includes a project explorer, a sample-data automation demo, a sandbox terminal, and browser-local notes. It does not connect to any real computer.';
+  if(/^(hello|hi|hey|namaste|नमस्ते|ନମସ୍କାର)\b/u.test(q))return 'Hello! ✳ Welcome to this quiet corner of the web. Would you like to explore Rajesh’s skills, projects, virtual desktop, or technical visualizations?';
+  if(has('rajesh','raajesh','राजेश','ରାଜେଶ')&&has('skill','stack','language','technology','python','javascript','tech','स्किल','କୌଶଳ'))return 'Rajesh works with Python, JavaScript, HTML/CSS, APIs, SQL, local AI workflows, UI/UX, Godot, Blender, Git, and automated testing. He prefers hands-on development and iterative testing.';
+  if(has('rajesh','raajesh','राजेश','ରାଜେଶ')&&has('project','work','build','portfolio','experience'))return 'Rajesh builds local AI systems, automation and data-processing tools, and software interfaces. Featured projects include MIRA 2.0, Trade Hack, Python automation, and SHAMBHALA tooling.';
+  if(has('who are you'))return 'I’m Mira, the guide to Rajesh’s portfolio. I can answer questions about his work and help with general questions too.';
+  if(has('who is rajesh','about rajesh','tell me about rajesh'))return 'Rajesh Roshan Nanda is a self-taught developer based in Bhubaneswar, Odisha, with interests in applied AI, Python automation, LLM tooling, and thoughtful interface design. He is open to suitable technical roles and collaborations.';
+  return null;
 }
 function textForSpeech(message){
   const digitNames=['zero','one','two','three','four','five','six','seven','eight','nine'];
@@ -127,18 +132,24 @@ function textForSpeech(message){
     .replace(/\bRajesh\b/gi,'Raajesh')
     .replace(/\+91[\s-]*(\d{10})\b/g,(_match,nationalNumber)=>`plus ${sayDigits('91')}; ${sayDigits(nationalNumber)}`);
 }
-function speakMessage(message){if(!$('#assistant-speak').checked||!('speechSynthesis' in window))return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(textForSpeech(message));u.lang='en-IN';u.rate=.96;u.pitch=1;u.volume=.85;u.onstart=()=>orb.classList.add('speaking');u.onend=()=>orb.classList.remove('speaking');u.onerror=()=>orb.classList.remove('speaking');speechSynthesis.speak(u);}catch{orb.classList.remove('speaking');}}
-function submitQuestion(text){const clean=String(text).trim().slice(0,300);if(!clean)return;addMessage(clean,'user');const response=answerQuestion(clean);addMessage(response,'bot');speakMessage(response);
+function browserSpeech(message){if(!('speechSynthesis' in window))return;try{stopSpeech();const u=new SpeechSynthesisUtterance(textForSpeech(message));u.lang='en-IN';u.rate=.87;u.pitch=1.06;u.volume=.85;const voices=speechSynthesis.getVoices();u.voice=voices.find(v=>/female|zira|heera|neerja|swara|samantha|aria|jenny|priya/i.test(v.name)&&v.lang.startsWith('en'))||voices.find(v=>v.lang==='en-IN')||null;u.onstart=()=>orb.classList.add('speaking');u.onend=()=>orb.classList.remove('speaking');u.onerror=()=>orb.classList.remove('speaking');speechSynthesis.speak(u);}catch{orb.classList.remove('speaking');}}
+async function speakMessage(message){if(!$('#assistant-speak').checked)return;stopSpeech();const thisSpeech=speechNumber;const spoken=textForSpeech(message).slice(0,750);try{const response=await fetch(ASSISTANT_API+'/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:spoken})});if(!response.ok)throw Error('Voice service unavailable');const blob=await response.blob();if(thisSpeech!==speechNumber||!$('#assistant-speak').checked||chatbotPanel.hidden)return;audioUrl=URL.createObjectURL(blob);currentAudio=new Audio(audioUrl);currentAudio.playbackRate=.90;currentAudio.onplay=()=>orb.classList.add('speaking');currentAudio.onended=stopSpeech;currentAudio.onerror=()=>{stopSpeech();browserSpeech(message);};await currentAudio.play();}catch{if(thisSpeech===speechNumber&&$('#assistant-speak').checked&&!chatbotPanel.hidden)browserSpeech(message);}}
+async function submitQuestion(text){const clean=String(text).trim().slice(0,300);if(!clean)return;addMessage(clean,'user');const canned=answerQuestion(clean);let response=canned;
+  if(!response){const pending=addMessage('Thinking…','bot');const thisRequest=++requestNumber;try{const result=await fetch(ASSISTANT_API+'/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question:clean,history:conversation.slice(-6)})});const data=await result.json();if(!result.ok)throw Error(data.error||'Mira is temporarily unavailable.');response=String(data.answer||'').trim();if(!response)throw Error('Mira could not form an answer. Please try again.');}catch(error){response=error.message||'Mira is temporarily unavailable. Please try again.';}pending.textContent=response;$('#assistant-messages').scrollTop=$('#assistant-messages').scrollHeight;if(thisRequest!==requestNumber)return;}
+  else addMessage(response,'bot');
+  if(canned||!response.includes('unavailable')){conversation.push({role:'user',content:clean},{role:'assistant',content:response});if(conversation.length>8)conversation.splice(0,conversation.length-8);}
+  if(canned||!response.includes('unavailable'))speakMessage(response);
   if(/\b(show|open|go to|take me to)\b/i.test(clean)&&/\b(lab|desktop|computer)\b/i.test(clean)){jumpTo('#lab');}
 }
 $('#assistant-form').addEventListener('submit',event=>{event.preventDefault();const input=$('#assistant-input');submitQuestion(input.value);input.value='';});
+$('#assistant-speak').addEventListener('change',event=>{if(!event.target.checked)stopSpeech();});
 $$('#assistant-quick button').forEach(button=>button.addEventListener('click',()=>submitQuestion(button.dataset.question)));
 const micButton=$('#assistant-mic');
 if(!recognitionAPI){micButton.disabled=true;micButton.title='Speech recognition is not supported in this browser. Text chat still works.';micButton.setAttribute('aria-label','Speech recognition unavailable');}
 else{
   recognizer=new recognitionAPI();recognizer.continuous=false;recognizer.interimResults=false;recognizer.maxAlternatives=1;
   recognizer.onstart=()=>{micListening=true;orb.classList.add('listening');micButton.classList.add('listening');$('#assistant-disclaimer').textContent='Listening… Speak now. Speech recognition may be processed by your browser provider.';};
-  recognizer.onend=()=>{micListening=false;orb.classList.remove('listening');micButton.classList.remove('listening');$('#assistant-disclaimer').textContent='Guided answers from portfolio content, not generative AI. Voice availability varies by browser.';};
+  recognizer.onend=()=>{micListening=false;orb.classList.remove('listening');micButton.classList.remove('listening');$('#assistant-disclaimer').textContent='Open questions and voice use Cloudflare AI. Microphone recognition may use your browser provider.';};
   recognizer.onerror=event=>{$('#assistant-disclaimer').textContent='Microphone: '+event.error+'. You can always type your question.';};
   recognizer.onresult=event=>{const heard=event.results?.[0]?.[0]?.transcript||'';if(heard){$('#assistant-input').value=heard;submitQuestion(heard);$('#assistant-input').value='';}};
   micButton.addEventListener('click',()=>{try{if(micListening){recognizer.stop();return;}recognizer.lang=$('#assistant-language').value;recognizer.start();}catch{$('#assistant-disclaimer').textContent='Could not start the microphone. Use a supported browser on localhost or HTTPS.';}});

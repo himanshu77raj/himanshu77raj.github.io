@@ -11,7 +11,8 @@ Email: rajeshroshannanda2@gmail.com | Phone / WhatsApp: +91 9178839312 | LinkedI
 ## What's in this package
 - `index.html`: the semantic page and original SVG diagrams
 - `styles.css`: responsive design, typography, accessibility and print styles
-- `script.js`: virtual OS, case studies, local assistant, canvas geometry and interactivity
+- `script.js`: virtual OS, case studies, portfolio assistant, canvas geometry and interactivity
+- `worker/`: Cloudflare Worker for hosted Llama answers and Mira's spoken replies
 - `assets/favicon.svg`: favicon
 - `assets/rajesh-roshan-nanda-portrait.webp`: optimized original user-supplied portrait
 - `assets/rajesh-roshan-nanda-original.png`: unedited user-supplied photograph
@@ -19,9 +20,13 @@ Email: rajeshroshannanda2@gmail.com | Phone / WhatsApp: +91 9178839312 | LinkedI
 - `TEST-REPORT.md`: V4 validation and browser-testing limitations
 
 ## Important boundaries
-This site is not a connection to Rajesh's desktop, real private APIs, or local source files. API responses, terminal commands, and sample workflow inputs are sandbox demonstrations. The chatbot uses curated local answers, not a live LLM. Project-specific GitHub repositories have not been verified as public. No private credentials or proprietary code are embedded in the page. This portfolio is published through GitHub Pages.
+This site is not a connection to Rajesh's desktop, real private APIs, or local source files. API responses, terminal commands, and sample workflow inputs are sandbox demonstrations. The chatbot answers portfolio questions from curated public facts and sends open questions to Llama through Cloudflare Workers AI. Spoken replies use Cloudflare's Aura 2 voice when available, with browser speech synthesis as a fallback. No private credentials or proprietary code are embedded in the page. Project-specific GitHub repositories have not been verified as public. This portfolio is published through GitHub Pages.
 
 ## Deployment
 The public source repository is [himanshu77raj.github.io](https://github.com/himanshu77raj/himanshu77raj.github.io). GitHub Pages serves the site at [https://himanshu77raj.github.io/](https://himanshu77raj.github.io/). The GitHub Pages source is the root of the `main` branch.
 
 Only the optimized portrait is published. The unedited original photograph, working prompt, and local test report remain outside the repository through `.gitignore`. The engineering projects described on the page are separate private or demonstrative work; their source code is not published here.
+
+## Assistant backend
+
+From `worker/`, sign in with `npx wrangler login`, then deploy with `npx wrangler deploy`. Wrangler will print the `*.workers.dev` URL. Set `ASSISTANT_API` in `script.js` to that URL, then publish the static site through GitHub Pages. The Worker uses Cloudflare AI bindings, so there is no Llama or speech API key in the repository. Both endpoints accept requests only from this site's origin, limit request sizes and output length, and use per-visitor and site request limits. Cloudflare's Workers AI usage allowance and billing settings remain under the Cloudflare account owner’s control.
