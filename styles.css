@@ -155,3 +155,4 @@ button, a, input, select, textarea { font-variant-ligatures: none; }
 .hero-portrait figcaption { left: auto; right: 15px; align-items: flex-end; text-align: right; }
 .hero-portrait-layout .floating-note { display: none; }
 @media (max-width: 520px) { .hero-portrait figcaption { display: none; } }
+.assistant-quick { flex-wrap: wrap; align-content: flex-start; max-height: 128px; overflow-x: hidden; overflow-y: auto; }
