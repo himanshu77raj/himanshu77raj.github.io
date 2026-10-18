@@ -26,6 +26,16 @@ test('accepts a short open question and sends verified portfolio context to Llam
   assert.equal(response.headers.get('access-control-allow-origin'), origin);
 });
 
+test('requests the selected reply language and rejects unknown languages', async () => {
+  let payload;
+  const env = environment(async (_model, p) => { payload = p; return { response: 'नमस्ते।' }; });
+  const response = await handler.fetch(request('/chat', { question: 'Who is Rajesh?', language: 'hi-IN' }), env);
+  assert.equal(response.status, 200);
+  assert.match(payload.messages[0].content, /entirely in Hindi/);
+  assert.equal((await response.json()).answer, 'नमस्ते।');
+  assert.equal((await handler.fetch(request('/chat', { question: 'Hello', language: 'xx-XX' }), env)).status, 400);
+});
+
 test('rejects unauthorized origins, oversized questions, and rate limited visitors', async () => {
   const env = environment(async () => { throw Error('AI must not run'); });
   assert.equal((await handler.fetch(request('/chat', { question: 'hello' }, 'https://other.example'), env)).status, 403);
@@ -42,4 +52,11 @@ test('returns MP3 stream for spoken replies', async () => {
   assert.equal(response.headers.get('content-type'), 'audio/mpeg');
   assert.equal(payload.speaker, 'luna');
   assert.deepEqual(new Uint8Array(await response.arrayBuffer()), bytes);
+});
+
+test('reports an exhausted daily AI allowance clearly', async () => {
+  const env = environment(async () => { throw Error('AiError: 4006: you have used up your daily free allocation'); });
+  const response = await handler.fetch(request('/chat', { question: 'Hello' }), env);
+  assert.equal(response.status, 503);
+  assert.match((await response.json()).error, /AI usage limit/);
 });
